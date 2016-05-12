@@ -1,9 +1,10 @@
 db:
     image: mysql
+    container_name: ec-mysql
     entrypoint: /localdb-run.sh
     volumes:
         - ./localdb-run.sh:/localdb-run.sh
-        - ./mysql:/mysql
+        - ../mysql:/mysql
     ports:
         - 3306:3306
     env_file: .env
@@ -11,6 +12,7 @@ db:
 
 phpmyadmin:
     image: phpmyadmin/phpmyadmin
+    container_name: ec-phpmyadmin
     links:
         - db:db
     restart: always
@@ -22,12 +24,14 @@ phpmyadmin:
 
 data:
     image: dylanlindgren/docker-laravel-data
+    container_name: ec-data
     volumes:
-        - ./lumen:/data
+        - ../lumen:/data
     privileged: true
 
 php:
     image: dylanlindgren/docker-laravel-phpfpm
+    container_name: ec-php
     volumes_from:
         - data
     links:
@@ -36,6 +40,7 @@ php:
 
 web:
     image: dylanlindgren/docker-laravel-nginx
+    container_name: ec-web
     volumes_from:
         - data
     links:
@@ -46,11 +51,13 @@ web:
 
 composer:
     image: dylanlindgren/docker-laravel-composer
+    container_name: ec-composer
     volumes_from:
         - data
 
 artisan:
     image: dylanlindgren/docker-laravel-artisan
+    container_name: ec-artisan
     volumes_from:
         - data
     links:
