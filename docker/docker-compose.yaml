@@ -30,7 +30,7 @@ data:
     privileged: true
 
 php:
-    image: dylanlindgren/docker-laravel-phpfpm
+    image: ppoffice/docker-laravel-phpfpm
     container_name: ec-php
     volumes_from:
         - data

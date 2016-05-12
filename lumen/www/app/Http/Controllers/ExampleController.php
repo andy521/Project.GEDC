@@ -2,17 +2,15 @@
 
 namespace App\Http\Controllers;
 
-class ExampleController extends Controller
-{
-    /**
-     * Create a new controller instance.
-     *
-     * @return void
-     */
-    public function __construct()
-    {
-        //
+use DB;
+
+class ExampleController extends Controller {
+
+    public function index () {
+//        var_dump($_SERVER);
+        $result = DB::select('select 1;');
+        var_dump($result);
+        return "";
     }
 
-    //
 }
