@@ -1,9 +1,9 @@
 db:
     image: mysql
     container_name: ec-mysql
-    entrypoint: /localdb-run.sh
+    # entrypoint: /localdb-run.sh # For OS X only
     volumes:
-        - ./localdb-run.sh:/localdb-run.sh
+        # - ./localdb-run.sh:/localdb-run.sh # For OS X only
         - ../mysql:/mysql
     ports:
         - 3306:3306
