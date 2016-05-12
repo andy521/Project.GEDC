@@ -1,0 +1,57 @@
+db:
+    image: mysql
+    entrypoint: /localdb-run.sh
+    volumes:
+        - ./localdb-run.sh:/localdb-run.sh
+        - ./mysql:/mysql
+    ports:
+        - 3306:3306
+    env_file: .env
+    privileged: true
+
+phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    links:
+        - db:db
+    restart: always
+    environment:
+        - PMA_HOST=db
+    env_file: .env
+    ports:
+        - 8081:80
+
+data:
+    image: dylanlindgren/docker-laravel-data
+    volumes:
+        - ./lumen:/data
+    privileged: true
+
+php:
+    image: dylanlindgren/docker-laravel-phpfpm
+    volumes_from:
+        - data
+    links:
+        - db:db
+    privileged: true
+
+web:
+    image: dylanlindgren/docker-laravel-nginx
+    volumes_from:
+        - data
+    links:
+        - php:fpm
+    ports:
+        - 8080:80
+    privileged: true
+
+composer:
+    image: dylanlindgren/docker-laravel-composer
+    volumes_from:
+        - data
+
+artisan:
+    image: dylanlindgren/docker-laravel-artisan
+    volumes_from:
+        - data
+    links:
+        - db:db
