@@ -4,7 +4,8 @@ db:
     # entrypoint: /localdb-run.sh # For OS X only
     volumes:
         # - ./localdb-run.sh:/localdb-run.sh # For OS X only
-        - ../mysql:/mysql
+        # - ../mysql:/mysql # For OS X only
+        - ../mysql:/var/lib/mysql
     ports:
         - 3306:3306
     env_file: .env
