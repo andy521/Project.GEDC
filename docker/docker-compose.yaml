@@ -61,3 +61,14 @@ artisan:
         - data
     links:
         - db:db
+
+socket:
+    image: dylanlindgren/docker-laravel-artisan
+    container_name: ec-socket
+    volumes_from:
+        - data
+    links:
+        - db:db
+    ports:
+        - 10000:10000
+    command: socket:start
