@@ -1,13 +1,11 @@
 db:
     image: mysql
     container_name: ec-mysql
-    # entrypoint: /localdb-run.sh # For OS X only
+    # entrypoint: /localdb-run.sh               # For OS X only
     volumes:
-        # - ./localdb-run.sh:/localdb-run.sh # For OS X only
-        # - ../mysql:/mysql # For OS X only
+        # - ./localdb-run.sh:/localdb-run.sh    # For OS X only
+        # - ../mysql:/mysql                     # For OS X only
         - ../mysql:/var/lib/mysql
-    ports:
-        - 3306:3306
     env_file: .env
     privileged: true
 
