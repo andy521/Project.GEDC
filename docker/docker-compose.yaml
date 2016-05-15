@@ -6,26 +6,18 @@ db:
         # - ./localdb-run.sh:/localdb-run.sh    # For OS X only
         # - ../mysql:/mysql                     # For OS X only
         - ../mysql:/var/lib/mysql
-    env_file: .env
+    env_file:
+        - common.env
+        - database.env
     privileged: true
-
-phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    container_name: ec-phpmyadmin
-    links:
-        - db:db
-    restart: always
-    environment:
-        - PMA_HOST=db
-    env_file: .env
-    ports:
-        - 8081:80
 
 data:
     image: dylanlindgren/docker-laravel-data
     container_name: ec-data
     volumes:
         - ../lumen:/data
+    env_file:
+        - common.env
     privileged: true
 
 php:
@@ -35,6 +27,8 @@ php:
         - data
     links:
         - db:db
+    env_file:
+        - common.env
     privileged: true
 
 web:
@@ -46,21 +40,22 @@ web:
         - php:fpm
     ports:
         - 8080:80
+    env_file:
+        - common.env
     privileged: true
 
-composer:
-    image: dylanlindgren/docker-laravel-composer
-    container_name: ec-composer
-    volumes_from:
-        - data
-
-artisan:
-    image: dylanlindgren/docker-laravel-artisan
-    container_name: ec-artisan
-    volumes_from:
-        - data
+phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: ec-phpmyadmin
     links:
         - db:db
+    restart: always
+    environment:
+        - PMA_HOST=db
+    env_file:
+        - common.env
+    ports:
+        - 8081:80
 
 socket:
     image: dylanlindgren/docker-laravel-artisan
@@ -71,4 +66,24 @@ socket:
         - db:db
     ports:
         - 10000:10000
+    env_file:
+        - common.env
     command: socket:start
+
+composer:
+    image: dylanlindgren/docker-laravel-composer
+    container_name: ec-composer
+    volumes_from:
+        - data
+    env_file:
+        - common.env
+
+artisan:
+    image: dylanlindgren/docker-laravel-artisan
+    container_name: ec-artisan
+    volumes_from:
+        - data
+    links:
+        - db:db
+    env_file:
+        - common.env
