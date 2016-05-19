@@ -14,7 +14,7 @@ class CreateDailyDataTable extends Migration {
             $table->increments('id');
             $table->integer('sensor_id');
             $table->date('date');
-            $table->integer('count')->comment('Date points count');
+            $table->integer('count')->comment('Daily points count');
             $table->float('ibi')->comment('Daily average IBI');
             $table->float('bpm')->comment('Daily average BPM');
             $table->float('tem')->comment('Daily average Temperature');

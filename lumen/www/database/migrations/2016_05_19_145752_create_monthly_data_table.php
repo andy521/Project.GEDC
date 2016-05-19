@@ -14,9 +14,9 @@ class CreateMonthlyDataTable extends Migration
         Schema::create('monthly_data', function (Blueprint $table) {
             $table->increments('id');
             $table->integer('sensor_id');
-            $table->unsignedTinyInteger('year');
+            $table->unsignedSmallInteger('year');
             $table->unsignedTinyInteger('month');
-            $table->integer('count')->comment('Date points count');
+            $table->integer('count')->comment('Monthly points count');
             $table->float('ibi')->comment('Daily average IBI');
             $table->float('bpm')->comment('Daily average BPM');
             $table->float('tem')->comment('Daily average Temperature');
