@@ -27,14 +27,12 @@ class HourlyData extends Model {
             return null;
         }
         $date = new DateTime;
-        $hour = $date->format('H');
-        $today = $date->format('Y-m-d');
-        $instance = self::where('sensor_id', $sensorData->sensor_id)->where('date', $today)->where('hour', $hour)->first();
+        $hour = $date->format('Y-m-d').' '.$date->format('H').':00:00';
+        $instance = self::where('sensor_id', $sensorData->sensor_id)->where('hour', $hour)->first();
         if (!$instance) {
             $instance = new self;
         }
         $lastCount = $instance->count;
-        $instance->date = $today;
         $instance->hour = $hour;
         $instance->count = $lastCount + 1;
         $instance->sensor_id = $sensorData->sensor_id;

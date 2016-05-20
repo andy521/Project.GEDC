@@ -11,4 +11,5 @@
 |
 */
 
-$app->get('/', 'ExampleController@index');
+//$app->get('/', 'ExampleController@index');
+$app->get('/data', 'DataController@index');

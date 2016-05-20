@@ -27,14 +27,12 @@ class MonthlyData extends Model {
             return null;
         }
         $date = new DateTime;
-        $year = $date->format('Y');
-        $month = $date->format('m');
-        $instance = self::where('sensor_id', $sensorData->sensor_id)->where('year', $year)->where('month', $month)->first();
+        $month = $date->format('Y').'-'.$date->format('m').'-00';
+        $instance = self::where('sensor_id', $sensorData->sensor_id)->where('month', $month)->first();
         if (!$instance) {
             $instance = new self;
         }
         $lastCount = $instance->count;
-        $instance->year = $year;
         $instance->month = $month;
         $instance->count = $lastCount + 1;
         $instance->sensor_id = $sensorData->sensor_id;
