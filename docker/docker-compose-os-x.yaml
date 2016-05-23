@@ -1,8 +1,10 @@
 db:
     image: mysql
     container_name: ec-mysql
+    entrypoint: /localdb-run.sh               # For OS X only
     volumes:
-        - ../mysql:/var/lib/mysql
+        - ./localdb-run.sh:/localdb-run.sh    # For OS X only
+        - ../mysql:/mysql                     # For OS X only
     env_file:
         - common.env
         - database.env
