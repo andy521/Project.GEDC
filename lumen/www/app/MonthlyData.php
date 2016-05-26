@@ -7,8 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * @property integer sensor_id
- * @property integer year
- * @property integer month
+ * @property \DateTime timestamp
  * @property integer count      Monthly points count
  * @property float ibi          IBI
  * @property float bpm          BPM
@@ -21,19 +20,19 @@ class MonthlyData extends Model {
      * @var string
      */
     protected $table = 'monthly_data';
+    protected $hidden = ['created_at', 'updated_at'];
 
     public static function saveOrUpdateOnSensorData(SensorData $sensorData) {
         if (!$sensorData) {
             return null;
         }
-        $date = new DateTime;
-        $month = $date->format('Y').'-'.$date->format('m').'-00';
-        $instance = self::where('sensor_id', $sensorData->sensor_id)->where('month', $month)->first();
+        $timestamp = $sensorData->timestamp->format('Y-m-01 00:00:00');
+        $instance = self::where('sensor_id', $sensorData->sensor_id)->where('timestamp', $timestamp)->first();
         if (!$instance) {
             $instance = new self;
         }
         $lastCount = $instance->count;
-        $instance->month = $month;
+        $instance->timestamp = $timestamp;
         $instance->count = $lastCount + 1;
         $instance->sensor_id = $sensorData->sensor_id;
         $instance->ibi = ($instance->ibi * $lastCount + $sensorData->ibi) / ($lastCount + 1);

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * @property integer sensor_id
- * @property string date
+ * @property \DateTime timestamp
  * @property integer count      Daily points count
  * @property float ibi          IBI
  * @property float bpm          BPM
@@ -20,19 +20,19 @@ class DailyData extends Model {
      * @var string
      */
     protected $table = 'daily_data';
+    protected $hidden = ['created_at', 'updated_at'];
 
     public static function saveOrUpdateOnSensorData(SensorData $sensorData) {
         if (!$sensorData) {
             return null;
         }
-        $date = new DateTime;
-        $today = $date->format('Y-m-d');
-        $instance = self::where('sensor_id', $sensorData->sensor_id)->where('date', $today)->first();
+        $timestamp = $sensorData->timestamp->format('Y-m-d 00:00:00');
+        $instance = self::where('sensor_id', $sensorData->sensor_id)->where('timestamp', $timestamp)->first();
         if (!$instance) {
             $instance = new self;
         }
         $lastCount = $instance->count;
-        $instance->date = $today;
+        $instance->timestamp = $timestamp;
         $instance->count = $lastCount + 1;
         $instance->sensor_id = $sensorData->sensor_id;
         $instance->ibi = ($instance->ibi * $lastCount + $sensorData->ibi) / ($lastCount + 1);

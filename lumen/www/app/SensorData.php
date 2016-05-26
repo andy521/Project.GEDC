@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 /**
  * @property integer sensor_id
+ * @property \DateTime timestamp
  * @property float acv          Acceleration value
  * @property float acx          Acceleration direction: cos(x)
  * @property float acy          Acceleration direction: cos(y)
@@ -21,4 +22,5 @@ class SensorData extends Model {
      * @var string
      */
     protected $table = 'sensor_data';
+    protected $hidden = ['created_at', 'updated_at'];
 }
