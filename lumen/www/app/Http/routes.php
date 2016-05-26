@@ -11,5 +11,7 @@
 |
 */
 
-//$app->get('/', 'ExampleController@index');
-$app->get('/data', 'DataController@index');
+$app->get('/{sensor_id}', 'DataController@index');
+$app->get('/{sensor_id}/hour', 'DataController@hourIndex');
+$app->get('/{sensor_id}/day', 'DataController@dayIndex');
+$app->get('/{sensor_id}/month', 'DataController@monthIndex');
