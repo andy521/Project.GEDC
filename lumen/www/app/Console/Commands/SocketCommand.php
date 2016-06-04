@@ -4,6 +4,7 @@ use App\DailyData;
 use App\HourlyData;
 use App\MonthlyData;
 use App\SensorData;
+use DateTime;
 use ErrorException;
 use Illuminate\Console\Command;
 
@@ -51,6 +52,10 @@ class SocketCommand extends Command {
         $this->port = env('SOCKET_PORT', 10000);
     }
 
+    public static function microtime_as_long() {
+        return (integer)round(microtime(true) * 1000);
+    }
+
     /**
      * Execute the console command.
      *
@@ -72,30 +77,25 @@ class SocketCommand extends Command {
                 break;
             }
             socket_getpeername($msgsock, $IP, $PORT);
-            $msg = "Welcome to the Project-EC Socket Server.\n";
-            socket_write($msgsock, $msg, strlen($msg));
-            do {
-                try {
-                    if (false === ($buf = socket_read($msgsock, 2048, PHP_NORMAL_READ))) {
-                        echo "socket_read() failed: reason: " . socket_strerror(socket_last_error($msgsock)) . "\n";
-                        break 2;
-                    }
-                    if (!$buf = trim($buf)) {
-                        continue;
-                    }
-                    if ($this->handleData($buf)) {
-                        $talkback = "Success: $buf\n";
-                    } else {
-                        $talkback = " Failed: $buf\n";
-                    }
-                    socket_write($msgsock, $talkback, strlen($talkback));
-                    $time = date('Y-m-d H:i:s');
-                    echo "[$time][$IP:$PORT] $talkback";
-                } catch (ErrorException $e) {
+            try {
+                if (false === ($buf = socket_read($msgsock, 2048, PHP_NORMAL_READ))) {
+                    echo "socket_read() failed: reason: " . socket_strerror(socket_last_error($msgsock)) . "\n";
                     break;
                 }
-            } while (true);
-            socket_close($msgsock);
+                $t_on_receive = self::microtime_as_long();
+                if ($buf = trim($buf)) {
+                    $time = date('Y-m-d H:i:s');
+                    echo "[$time][Receive][$IP:$PORT] $buf\n";
+                    $talkback = $this->process($buf, $t_on_receive) . "\n";
+                    socket_write($msgsock, $talkback, strlen($talkback));
+                    $time = date('Y-m-d H:i:s');
+                    echo "[$time][Answer][$IP:$PORT] $talkback\n";
+                }
+            } catch (\Exception $e) {
+                echo $e;
+            } finally {
+                socket_close($msgsock);
+            }
         } while (true);
 
         socket_close($sock);
@@ -107,19 +107,30 @@ class SocketCommand extends Command {
      * @param $data string
      * @return bool
      */
-    protected function handleData($data)
-    {
+    protected function parseData($data) {
         $parsed = json_decode($data);
-        if ($parsed && count($parsed) == 8) {
+        if ($parsed && count($parsed) == 9) {
             $sensorData = new SensorData;
             $sensorData->sensor_id = $parsed[0];
-            $sensorData->acv = $parsed[1];
-            $sensorData->acx = $parsed[2];
-            $sensorData->acy = $parsed[3];
-            $sensorData->acz = $parsed[4];
-            $sensorData->ibi = $parsed[5];
-            $sensorData->bpm = $parsed[6];
-            $sensorData->tem = $parsed[7];
+            $sensorData->acv = $parsed[2];
+            $sensorData->acx = $parsed[3];
+            $sensorData->acy = $parsed[4];
+            $sensorData->acz = $parsed[5];
+            $sensorData->ibi = $parsed[6];
+            $sensorData->bpm = $parsed[7];
+            $sensorData->tem = $parsed[8];
+
+            // Accept 10 or 13 digits timestamp
+            $timestamp = $parsed[1];
+            $digits = strlen(floor($timestamp));
+            switch ($digits) {
+                case 10: break;
+                case 13: $timestamp = $timestamp / 1000; break;
+                default: return false;
+            }
+            $date = new DateTime();
+            $date->setTimestamp($timestamp);
+            $sensorData->timestamp = $date;
 
             if ($sensorData->save()) {
                 HourlyData::saveOrUpdateOnSensorData($sensorData);
@@ -129,6 +140,16 @@ class SocketCommand extends Command {
             }
         }
         return false;
+    }
+
+    protected function process($data, $t_on_receive) {
+        switch (substr($data, 0, 2)) {
+            case 'd:':
+                return ($this->parseData(substr($data, 2)) ? "success" : "failed") . ": $data";
+            case 't:':
+                return substr($data, 2).",$t_on_receive,".self::microtime_as_long();
+        }
+        return "invalid data";
     }
 
 }
