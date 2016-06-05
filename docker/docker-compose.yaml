@@ -55,7 +55,7 @@ phpmyadmin:
         - 8081:80
 
 socket:
-    image: dylanlindgren/docker-laravel-artisan
+    image: ppoffice/docker-laravel-artisan
     container_name: ec-socket
     volumes_from:
         - data
@@ -68,7 +68,7 @@ socket:
     command: socket:start
 
 composer:
-    image: dylanlindgren/docker-laravel-composer
+    image: ppoffice/docker-laravel-composer
     container_name: ec-composer
     volumes_from:
         - data
@@ -76,7 +76,7 @@ composer:
         - common.env
 
 artisan:
-    image: dylanlindgren/docker-laravel-artisan
+    image: ppoffice/docker-laravel-artisan
     container_name: ec-artisan
     volumes_from:
         - data

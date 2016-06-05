@@ -5,8 +5,8 @@ use App\HourlyData;
 use App\MonthlyData;
 use App\SensorData;
 use DateTime;
-use ErrorException;
 use Illuminate\Console\Command;
+use Pusher;
 
 error_reporting(E_ALL);
 
@@ -46,14 +46,117 @@ class SocketCommand extends Command {
      * @var int
      */
     protected $port = 10000;
+
+    /**
+     * The Pusher.com service
+     *
+     * @var null|Pusher
+     */
+    protected $pusher = null;
     
     public function __construct() {
         parent::__construct();
+        $options = array('encrypted' => true);
+        $this->pusher = new Pusher('24737bc4b88e96c1898c', 'd6ab2f39949df87df8fa', '213316', $options);
         $this->port = env('SOCKET_PORT', 10000);
     }
 
-    public static function microtime_as_long() {
+    private static function microtime_as_long() {
         return (integer)round(microtime(true) * 1000);
+    }
+
+    private static function unix_time_to_datetime($timestamp) {
+        $digits = strlen(floor($timestamp));
+        switch ($digits) {
+            case 10: break;
+            case 13: $timestamp = $timestamp / 1000; break;
+            default: return false;
+        }
+        $datetime = new DateTime();
+        $datetime->setTimestamp($timestamp);
+        return $datetime;
+    }
+
+    /**
+     * Parse and save sensor data
+     *
+     * @param $data string
+     * @return bool
+     */
+    private function parseData($data) {
+        $parsed = json_decode($data);
+        if ($parsed && count($parsed) == 9) {
+            $sensorData = new SensorData;
+            $sensorData->sensor_id = $parsed[0];
+            $sensorData->acv = $parsed[2];
+            $sensorData->acx = $parsed[3];
+            $sensorData->acy = $parsed[4];
+            $sensorData->acz = $parsed[5];
+            $sensorData->ibi = $parsed[6];
+            $sensorData->bpm = $parsed[7];
+            $sensorData->tem = $parsed[8];
+
+            // Accept 10 or 13 digits timestamp
+            $timestamp = self::unix_time_to_datetime($parsed[1]);
+            if (!$timestamp) {
+                return false;
+            }
+            $sensorData->timestamp = $timestamp;
+
+            if ($sensorData->save()) {
+                HourlyData::saveOrUpdateOnSensorData($sensorData);
+                DailyData::saveOrUpdateOnSensorData($sensorData);
+                MonthlyData::saveOrUpdateOnSensorData($sensorData);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Parse data and push notification to Pusher.com
+     * @param $data string
+     * @return bool
+     */
+    private function pushNotification($data) {
+        $parsed = json_decode($data);
+        if ($parsed && count($parsed) == 4) {
+            $sensorId   = $parsed[0];
+            $timestamp  = self::unix_time_to_datetime($parsed[1]);
+            $type       = $parsed[2];
+            $append     = $parsed[3];
+            if (!$sensorId || !$timestamp) {
+                return false;
+            }
+            $message = [
+                'sensorId' => $sensorId,
+                'timestamp' => $timestamp->format("Y-m-d H:i:s"),
+            ];
+            switch ($type) {
+                case 0:
+                    $channel = 'alert_channel';
+                    $event = 'new_alert';
+                    switch ($append) {
+                        case 0: $message['type'] = 'fall'; break;
+                    }
+                    break;
+                default: return false;
+            }
+            return $this->pusher->trigger($channel, $event, $message);
+        }
+        return false;
+    }
+
+    private function process($data, $t_on_receive) {
+        switch (substr($data, 0, 2)) {
+            case 'd:':
+                return ($this->parseData(substr($data, 2)) ? "success" : "failed") . ": $data";
+            case 't:':
+                return substr($data, 2).",$t_on_receive,".self::microtime_as_long();
+            case 'n:':
+                return ($this->pushNotification(substr($data, 2)) ? "success" : "failed") . ": $data";
+        }
+        return "invalid data";
     }
 
     /**
@@ -99,57 +202,6 @@ class SocketCommand extends Command {
         } while (true);
 
         socket_close($sock);
-    }
-
-    /**
-     * Parse and save sensor data
-     *
-     * @param $data string
-     * @return bool
-     */
-    protected function parseData($data) {
-        $parsed = json_decode($data);
-        if ($parsed && count($parsed) == 9) {
-            $sensorData = new SensorData;
-            $sensorData->sensor_id = $parsed[0];
-            $sensorData->acv = $parsed[2];
-            $sensorData->acx = $parsed[3];
-            $sensorData->acy = $parsed[4];
-            $sensorData->acz = $parsed[5];
-            $sensorData->ibi = $parsed[6];
-            $sensorData->bpm = $parsed[7];
-            $sensorData->tem = $parsed[8];
-
-            // Accept 10 or 13 digits timestamp
-            $timestamp = $parsed[1];
-            $digits = strlen(floor($timestamp));
-            switch ($digits) {
-                case 10: break;
-                case 13: $timestamp = $timestamp / 1000; break;
-                default: return false;
-            }
-            $date = new DateTime();
-            $date->setTimestamp($timestamp);
-            $sensorData->timestamp = $date;
-
-            if ($sensorData->save()) {
-                HourlyData::saveOrUpdateOnSensorData($sensorData);
-                DailyData::saveOrUpdateOnSensorData($sensorData);
-                MonthlyData::saveOrUpdateOnSensorData($sensorData);
-                return true;
-            }
-        }
-        return false;
-    }
-
-    protected function process($data, $t_on_receive) {
-        switch (substr($data, 0, 2)) {
-            case 'd:':
-                return ($this->parseData(substr($data, 2)) ? "success" : "failed") . ": $data";
-            case 't:':
-                return substr($data, 2).",$t_on_receive,".self::microtime_as_long();
-        }
-        return "invalid data";
     }
 
 }
