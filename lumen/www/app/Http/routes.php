@@ -11,7 +11,14 @@
 |
 */
 
-$app->get('/{sensor_id}', 'DataController@index');
-$app->get('/{sensor_id}/hour', 'DataController@hourIndex');
-$app->get('/{sensor_id}/day', 'DataController@dayIndex');
-$app->get('/{sensor_id}/month', 'DataController@monthIndex');
+$app->group(['namespace' => 'App\Http\Controllers', 'prefix' => 'auth'], function ($app) {
+    $app->post('/login', 'AuthController@login');
+    $app->post('/register', 'AuthController@register');
+});
+
+$app->group(['namespace' => 'App\Http\Controllers', 'prefix' => 'data', 'middleware' => 'auth'], function ($app) {
+    $app->get('/{sensor_id}', 'DataController@index');
+    $app->get('/{sensor_id}/hour', 'DataController@hourIndex');
+    $app->get('/{sensor_id}/day', 'DataController@dayIndex');
+    $app->get('/{sensor_id}/month', 'DataController@monthIndex');
+});

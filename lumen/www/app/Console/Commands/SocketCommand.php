@@ -3,6 +3,7 @@
 use App\DailyData;
 use App\HourlyData;
 use App\MonthlyData;
+use App\Notification;
 use App\SensorData;
 use DateTime;
 use Illuminate\Console\Command;
@@ -125,7 +126,7 @@ class SocketCommand extends Command {
             $timestamp  = self::unix_time_to_datetime($parsed[1]);
             $type       = $parsed[2];
             $append     = $parsed[3];
-            if (!$sensorId || !$timestamp) {
+            if (!$timestamp) {
                 return false;
             }
             $message = [
@@ -142,6 +143,14 @@ class SocketCommand extends Command {
                     break;
                 default: return false;
             }
+
+            $notification = new Notification;
+            $notification->sensor_id = $sensorId;
+            $notification->timestamp = $timestamp;
+            $notification->type = $type;
+            $notification->append = $append;
+            $notification->save();
+
             return $this->pusher->trigger($channel, $event, $message);
         }
         return false;
@@ -179,8 +188,8 @@ class SocketCommand extends Command {
                 echo "socket_accept() failed: reason: " . socket_strerror(socket_last_error($sock)) . "\n";
                 break;
             }
-            socket_getpeername($msgsock, $IP, $PORT);
             try {
+                socket_getpeername($msgsock, $IP, $PORT);
                 if (false === ($buf = socket_read($msgsock, 2048, PHP_NORMAL_READ))) {
                     echo "socket_read() failed: reason: " . socket_strerror(socket_last_error($msgsock)) . "\n";
                     break;

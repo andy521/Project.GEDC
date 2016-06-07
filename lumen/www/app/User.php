@@ -18,7 +18,7 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
      * @var array
      */
     protected $fillable = [
-        'name', 'email',
+        'name', 'email', 'password'
     ];
 
     /**
@@ -27,6 +27,12 @@ class User extends Model implements AuthenticatableContract, AuthorizableContrac
      * @var array
      */
     protected $hidden = [
-        'password',
+        'password', 'remember_token', 'created_at', 'updated_at'
     ];
+
+    public function refreshApiToken() {
+        $this->api_token = md5(uniqid('', true));
+        $this->api_token_expire = time() + 30 * 24 * 3600; // Expire after one month
+        $this->save();
+    }
 }
