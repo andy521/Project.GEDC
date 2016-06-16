@@ -176,17 +176,23 @@ class SocketCommand extends Command {
     public function fire() {
         if (($sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP)) === false) {
             echo "socket_create() failed: reason: " . socket_strerror(socket_last_error()) . "\n";
+            return;
         }
         if (socket_bind($sock, $this->address, $this->port) === false) {
             echo "socket_bind() failed: reason: " . socket_strerror(socket_last_error($sock)) . "\n";
+            return;
         }
         if (socket_listen($sock, 5) === false) {
             echo "socket_listen() failed: reason: " . socket_strerror(socket_last_error($sock)) . "\n";
+            return;
+        }
+        if (socket_set_nonblock($sock) === false) {
+            echo "socket_set_nonblock() failed: reason: " . socket_strerror(socket_last_error($sock)) . "\n";
+            return;
         }
         do {
-            if (($msgsock = socket_accept($sock)) === false) {
-                echo "socket_accept() failed: reason: " . socket_strerror(socket_last_error($sock)) . "\n";
-                break;
+            if (($msgsock = @socket_accept($sock)) === false) {
+                continue;
             }
             try {
                 socket_getpeername($msgsock, $IP, $PORT);
