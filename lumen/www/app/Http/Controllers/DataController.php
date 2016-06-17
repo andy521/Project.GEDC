@@ -19,7 +19,7 @@ class DataController extends Controller {
             ['sensor_id', $sensorId],
             ['timestamp', '>=', date('Y-m-d H:i:s', strtotime($from))],
             ['timestamp', '<=', date('Y-m-d H:i:s', strtotime($to))],
-        ])->get();
+        ])->orderBy('timestamp')->get();
         return $results->toJson();
     }
 
@@ -31,7 +31,7 @@ class DataController extends Controller {
             ['sensor_id', $sensorId],
             ['timestamp', '>=', date('Y-m-d H:00:00', strtotime($from))],
             ['timestamp', '<=', date('Y-m-d H:00:00', strtotime($to))],
-        ])->get();
+        ])->orderBy('timestamp')->get();
         return $results->toJson();
     }
 
@@ -43,7 +43,7 @@ class DataController extends Controller {
             ['sensor_id', $sensorId],
             ['timestamp', '>=', date('Y-m-d 00:00:00', strtotime($from))],
             ['timestamp', '<=', date('Y-m-d 23:59:59', strtotime($to))],
-        ])->get();
+        ])->orderBy('timestamp')->get();
         return $results->toJson();
     }
 
@@ -55,7 +55,7 @@ class DataController extends Controller {
             ['sensor_id', $sensorId],
             ['timestamp', '>=', date('Y-m-01 00:00:00', strtotime($from))],
             ['timestamp', '<=', date('Y-m-01 23:59:59', strtotime($to))],
-        ])->get();
+        ])->orderBy('timestamp')->get();
         return $results->toJson();
     }
 
