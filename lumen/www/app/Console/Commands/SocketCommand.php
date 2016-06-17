@@ -191,7 +191,7 @@ class SocketCommand extends Command {
                 continue;
             }
             try {
-                socket_getpeername($msgsock, $IP, $PORT);
+                @socket_getpeername($msgsock, $IP, $PORT);
                 if (false === ($buf = @socket_read($msgsock, 2048, PHP_NORMAL_READ))) {
                     continue;
                 }
