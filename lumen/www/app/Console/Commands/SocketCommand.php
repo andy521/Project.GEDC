@@ -175,24 +175,25 @@ class SocketCommand extends Command {
      */
     public function fire() {
         if (($sock = socket_create(AF_INET, SOCK_STREAM, SOL_TCP)) === false) {
-            echo "socket_create() failed: reason: " . socket_strerror(socket_last_error()) . "\n";
+            return;
         }
         if (socket_bind($sock, $this->address, $this->port) === false) {
-            echo "socket_bind() failed: reason: " . socket_strerror(socket_last_error($sock)) . "\n";
+            return;
         }
         if (socket_listen($sock, 5) === false) {
-            echo "socket_listen() failed: reason: " . socket_strerror(socket_last_error($sock)) . "\n";
+            return;
+        }
+        if (socket_set_nonblock($sock) === false) {
+            return;
         }
         do {
-            if (($msgsock = socket_accept($sock)) === false) {
-                echo "socket_accept() failed: reason: " . socket_strerror(socket_last_error($sock)) . "\n";
-                break;
+            if (($msgsock = @socket_accept($sock)) === false) {
+                continue;
             }
             try {
                 socket_getpeername($msgsock, $IP, $PORT);
-                if (false === ($buf = socket_read($msgsock, 2048, PHP_NORMAL_READ))) {
-                    echo "socket_read() failed: reason: " . socket_strerror(socket_last_error($msgsock)) . "\n";
-                    break;
+                if (false === ($buf = @socket_read($msgsock, 2048, PHP_NORMAL_READ))) {
+                    continue;
                 }
                 $t_on_receive = self::microtime_as_long();
                 if ($buf = trim($buf)) {
@@ -203,8 +204,6 @@ class SocketCommand extends Command {
                     $time = date('Y-m-d H:i:s');
                     echo "[$time][Answer][$IP:$PORT] $talkback\n";
                 }
-            } catch (\Exception $e) {
-                echo $e;
             } finally {
                 socket_close($msgsock);
             }
