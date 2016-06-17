@@ -200,12 +200,12 @@ class SocketCommand extends Command {
                     $time = date('Y-m-d H:i:s');
                     echo "[$time][Receive][$IP:$PORT] $buf\n";
                     $talkback = $this->process($buf, $t_on_receive) . "\n";
-                    socket_write($msgsock, $talkback, strlen($talkback));
+                    @socket_write($msgsock, $talkback, strlen($talkback));
                     $time = date('Y-m-d H:i:s');
                     echo "[$time][Answer][$IP:$PORT] $talkback\n";
                 }
             } finally {
-                socket_close($msgsock);
+                @socket_close($msgsock);
             }
         } while (true);
 
