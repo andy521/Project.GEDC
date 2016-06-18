@@ -191,7 +191,7 @@ class SocketCommand extends Command {
                 continue;
             }
             try {
-                socket_getpeername($msgsock, $IP, $PORT);
+                @socket_getpeername($msgsock, $IP, $PORT);
                 if (false === ($buf = @socket_read($msgsock, 2048, PHP_NORMAL_READ))) {
                     continue;
                 }
@@ -200,12 +200,12 @@ class SocketCommand extends Command {
                     $time = date('Y-m-d H:i:s');
                     echo "[$time][Receive][$IP:$PORT] $buf\n";
                     $talkback = $this->process($buf, $t_on_receive) . "\n";
-                    socket_write($msgsock, $talkback, strlen($talkback));
+                    @socket_write($msgsock, $talkback, strlen($talkback));
                     $time = date('Y-m-d H:i:s');
                     echo "[$time][Answer][$IP:$PORT] $talkback\n";
                 }
             } finally {
-                socket_close($msgsock);
+                @socket_close($msgsock);
             }
         } while (true);
 
