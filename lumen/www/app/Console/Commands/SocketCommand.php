@@ -161,7 +161,7 @@ class SocketCommand extends Command {
             case 'd:':
                 return ($this->parseData(substr($data, 2)) ? "success" : "failed") . ": $data";
             case 't:':
-                return substr($data, 2).",$t_on_receive,".self::microtime_as_long();
+                return substr($data, 2) . ",$t_on_receive," . self::microtime_as_long() . '\r\n';
             case 'n:':
                 return ($this->pushNotification(substr($data, 2)) ? "success" : "failed") . ": $data";
         }
