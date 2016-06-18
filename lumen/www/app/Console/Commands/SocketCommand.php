@@ -161,7 +161,7 @@ class SocketCommand extends Command {
             case 'd:':
                 return ($this->parseData(substr($data, 2)) ? "success" : "failed") . ": $data";
             case 't:':
-                return substr($data, 2) . ",$t_on_receive," . self::microtime_as_long() . '\r\n';
+                return substr($data, 2) . ",$t_on_receive," . self::microtime_as_long();
             case 'n:':
                 return ($this->pushNotification(substr($data, 2)) ? "success" : "failed") . ": $data";
         }
@@ -187,7 +187,7 @@ class SocketCommand extends Command {
             return;
         }
         do {
-            if (($msgsock = @socket_accept($sock)) === false) {
+            if (($msgsock = socket_accept($sock)) === false) {
                 continue;
             }
             try {
@@ -199,10 +199,10 @@ class SocketCommand extends Command {
                 if ($buf = trim($buf)) {
                     $time = date('Y-m-d H:i:s');
                     echo "[$time][Receive][$IP:$PORT] $buf\n";
-                    $talkback = $this->process($buf, $t_on_receive) . "\n";
+                    $talkback = $this->process($buf, $t_on_receive) . "\r\n";
                     socket_write($msgsock, $talkback, strlen($talkback));
                     $time = date('Y-m-d H:i:s');
-                    echo "[$time][Answer][$IP:$PORT] $talkback\n";
+                    echo "[$time][Answer][$IP:$PORT] $talkback";
                 }
             } catch (\Exception $e) {
                 echo $e;
