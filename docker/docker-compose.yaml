@@ -54,18 +54,17 @@ phpmyadmin:
     ports:
         - 8081:80
 
-socket:
-    image: ppoffice/docker-laravel-artisan
-    container_name: ec-socket
-    volumes_from:
-        - data
+node:
+    build: ./node
+    container_name: ec-node
+    volumes:
+        - ../node:/data
     links:
         - db:db
     ports:
         - 10000:10000
     env_file:
         - common.env
-    command: socket:start
 
 composer:
     image: ppoffice/docker-laravel-composer
