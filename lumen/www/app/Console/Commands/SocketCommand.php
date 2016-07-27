@@ -54,7 +54,7 @@ class SocketCommand extends Command {
      * @var null|Pusher
      */
     protected $pusher = null;
-    
+
     public function __construct() {
         parent::__construct();
         $options = array('encrypted' => true);
@@ -122,10 +122,10 @@ class SocketCommand extends Command {
     private function pushNotification($data) {
         $parsed = json_decode($data);
         if ($parsed && count($parsed) == 4) {
-            $sensorId   = $parsed[0];
-            $timestamp  = self::unix_time_to_datetime($parsed[1]);
-            $type       = $parsed[2];
-            $append     = $parsed[3];
+            $sensorId = $parsed[0];
+            $timestamp = self::unix_time_to_datetime($parsed[1]);
+            $category = $parsed[2];
+            $subcategory = $parsed[3];
             if (!$timestamp) {
                 return false;
             }
@@ -133,12 +133,12 @@ class SocketCommand extends Command {
                 'sensorId' => $sensorId,
                 'timestamp' => $timestamp->format("Y-m-d H:i:s"),
             ];
-            switch ($type) {
+            switch ($category) {
                 case 0:
                     $channel = 'alert_channel';
                     $event = 'new_alert';
-                    switch ($append) {
-                        case 0: $message['type'] = 'fall'; break;
+                    switch ($subcategory) {
+                        case 0: $message['category'] = 'fall'; break;
                     }
                     break;
                 default: return false;
@@ -147,8 +147,8 @@ class SocketCommand extends Command {
             $notification = new Notification;
             $notification->sensor_id = $sensorId;
             $notification->timestamp = $timestamp;
-            $notification->type = $type;
-            $notification->append = $append;
+            $notification->category = $category;
+            $notification->subcategory = $subcategory;
             $notification->save();
 
             return $this->pusher->trigger($channel, $event, $message);

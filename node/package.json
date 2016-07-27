@@ -4,9 +4,14 @@
   "description": "Socket Server for Project-EC",
   "main": "index.js",
   "scripts": {
-    "start": "forever index.js",
+    "start": "forever --uid server --killSignal=SIGTERM -w --watchDirectory=$(pwd) index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "PPOffice",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "mysql": "^2.11.1",
+    "pusher": "^1.4.0-rc4",
+    "sequelize": "^3.23.6"
+  }
 }
