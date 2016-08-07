@@ -7,7 +7,8 @@ const MonthlyData = require('../models/monthly_data');
 const Notification = require('../models/notification');
 
 const pattern = /^([d|n|t]):(.+)/;
-const ERROR_REPONSE = 'error: invalid request';
+const INVALID_REQUEST = 'error: invalid request';
+const INVALID_DATA_FORMAT = 'error: invalid data format';
 
 const pusher = new Pusher({
     appId: '213316',
@@ -71,17 +72,17 @@ const handlers = {
                         MonthlyData.saveOrUpdateOnSensorData(data, transaction),
                     ];
                     return Promise.all(promises);
-                }).then(() => str, error => error.message);
+                }).then(() => str);
             }
         }
-        return Promise.resolve('invalid data format');
+        return Promise.reject(new Error(INVALID_DATA_FORMAT));
     },
     't': function handleTime(str, timeReceived) {
         return Promise.resolve(str + ',' + timeReceived + ',' + new Date().getTime());
     },
     'n': function handleNotification (str) {
         const parsed = JSON.parse(str);
-        if (parsed !== null && parsed.length == 4) {
+        if (parsed !== null && parsed.length === 4) {
             const sensorId = parsed[0];
             const category = parsed[2];
             const subcategory = parsed[3];
@@ -92,17 +93,19 @@ const handlers = {
                     message['sensorId'] = sensorId;
                     message['timestamp'] = timestamp; // TODO: format time
 
-                    return Notification.create({
-                        sensorId, timestamp, category, subcategory,
-                        createdAt: new Date(),
-                        updatedAt: new Date()
-                    }).then(() => new Promise((resolve, reject) => {
-                        pusher.trigger(message['channel'], message['event'], message, resolve);
-                    }), error => error.message);
+                    return new Promise((resolve, reject) => {
+                        pusher.trigger(message['channel'], message['event'], message, error => error ? reject(error) : resolve());
+                    }).then(() => {
+                        return Notification.create({
+                            sensorId, timestamp, category, subcategory,
+                            createdAt: new Date(),
+                            updatedAt: new Date()
+                        });
+                    }).then(() => str);
                 }
             }
         }
-        return Promise.resolve('invalid data format');
+        return Promise.reject(new Error(INVALID_DATA_FORMAT));
     },
 }
 
@@ -117,10 +120,14 @@ class Processor {
             const type = ret[1];
             const content = ret[2];
             if (typeof handlers[type] !== 'undefined') {
-                return handlers[type](content, this.timestamp) || ERROR_REPONSE;
+                try {
+                    return handlers[type](content, this.timestamp);
+                } catch (error) {
+                    return Promise.reject(error);
+                }
             }
         }
-        return ERROR_REPONSE;
+        return Promise.reject(new Error(INVALID_REQUEST));
     }
 }
 

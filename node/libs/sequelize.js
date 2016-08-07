@@ -15,7 +15,8 @@ const sequelize = new Sequelize(DB_ENV_MYSQL_DATABASE, DB_ENV_MYSQL_USER, DB_ENV
     define: {
         timestamps: false
     },
-    timezone: '+08:00'
+    timezone: '+08:00',
+    logging: false
 });
 
 module.exports = sequelize;

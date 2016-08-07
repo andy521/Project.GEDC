@@ -8,12 +8,15 @@ const server = net.createServer((socket) => {
         request = request.trim();
         if (request) {
             console.log(new Date() + ' client => server ' + request);
-            processor.handle(request).then(response => {
+            processor.handle(request).then(response => response, error => {
+                let message = error.message;
+                if (message) {
+                    message = message[0].toLowerCase() + message.slice(1);
+                }
+                return Promise.resolve('error: ' + message);
+            }).then(response => {
                 socket.write(response + '\r\n');
                 console.log(new Date() + ' server => client ' + response);
-            }, error => {
-                console.error(error);
-            }).then(() => {
                 socket.end();
             });
         } else {
