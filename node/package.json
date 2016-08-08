@@ -12,6 +12,7 @@
   "dependencies": {
     "mysql": "^2.11.1",
     "pusher": "^1.4.0-rc4",
+    "redis": "^2.6.2",
     "sequelize": "^3.23.6"
   }
 }

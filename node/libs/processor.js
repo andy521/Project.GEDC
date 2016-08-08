@@ -1,3 +1,4 @@
+const Redis = require('redis');
 const Pusher = require('pusher');
 const sequelize = require('./sequelize');
 const SensorData = require('../models/sensor_data');
@@ -6,15 +7,23 @@ const DailyData = require('../models/daily_data');
 const MonthlyData = require('../models/monthly_data');
 const Notification = require('../models/notification');
 
-const pattern = /^([d|n|t]):(.+)/;
+const CALCULATE_ON = 256;
+const pattern = /^([p|a|n|t]):(.+)/;
 const INVALID_REQUEST = 'error: invalid request';
 const INVALID_DATA_FORMAT = 'error: invalid data format';
+
+const { CACHE_PORT_6379_TCP_ADDR, CACHE_PORT_6379_TCP_PORT } = process.env;
+const redis = Redis.createClient(CACHE_PORT_6379_TCP_PORT, CACHE_PORT_6379_TCP_ADDR);
 
 const pusher = new Pusher({
     appId: '213316',
     key: '24737bc4b88e96c1898c',
     secret: 'd6ab2f39949df87df8fa',
     encrypted: true
+});
+
+redis.on('error', function(error) {
+    console.log("Redis error: " + error);
 });
 
 const MESSAGES = {
@@ -46,7 +55,7 @@ const unixTimeToDate = function(time) {
 }
 
 const handlers = {
-    'd': function handleData(str) {
+    'p': function handlePhysical(str) {
         const parsed = JSON.parse(str);
         if (parsed !== null && parsed.length == 9) {
             const timestamp = unixTimeToDate(parsed[1]);
@@ -54,13 +63,9 @@ const handlers = {
                 const data = {
                     sensorId: parsed[0],
                     timestamp,
-                    acv: parsed[2],
-                    acx: parsed[3],
-                    acy: parsed[4],
-                    acz: parsed[5],
-                    ibi: parsed[6],
-                    bpm: parsed[7],
-                    tem: parsed[8],
+                    ibi: parsed[2],
+                    bpm: parsed[3],
+                    tem: parsed[4],
                     createdAt: new Date(),
                     updatedAt: new Date()
                 };
@@ -73,6 +78,33 @@ const handlers = {
                     ];
                     return Promise.all(promises);
                 }).then(() => str);
+            }
+        }
+        return Promise.reject(new Error(INVALID_DATA_FORMAT));
+    },
+    'a': function handleAcceleration(str) {
+        const parsed = JSON.parse(str);
+        if (parsed !== null && parsed.length == 6) {
+            const sensorId = parsed[0];
+            const timestamp = unixTimeToDate(parsed[1]);
+            const value = parseFloat(parsed[2]);
+            const cosx = parseFloat(parsed[3]);
+            const cosy = parseFloat(parsed[4]);
+            const cosz = parseFloat(parsed[5]);
+            if (timestamp !== null) {
+                return new Promise((resolve, reject) => {
+                    redis.zadd([`acceleration:${sensorId}`, timestamp.getTime(), `${value},${cosx},${cosy},${cosz}`], (error, response) => error === null ? resolve() : reject(error));
+                }).then(() => {
+                    return new Promise((resolve, reject) => {
+                        redis.zcard(`acceleration:${sensorId}`, (error, response) => error === null ? resolve(response) : reject(error));
+                    });
+                }).then(response => {
+                    // Tell other programs to start calculate when data size is times of ${CALCULATE_ON}
+                    if (response % CALCULATE_ON === 0) {
+                        redis.publish(`acceleration:${sensorId}`, 'START');
+                    }
+                    return str;
+                });
             }
         }
         return Promise.reject(new Error(INVALID_DATA_FORMAT));

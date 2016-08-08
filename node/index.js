@@ -17,7 +17,8 @@ const server = net.createServer((socket) => {
             }).then(response => {
                 socket.write(response + '\r\n');
                 console.log(new Date() + ' server => client ' + response);
-                socket.end();
+                // TODO: Client close connection
+                // socket.end();
             });
         } else {
             socket.end();

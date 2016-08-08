@@ -1,6 +1,6 @@
 db:
     image: mysql
-    container_name: ec-mysql
+    container_name: gedc-mysql
     volumes:
         - ../mysql:/var/lib/mysql
     env_file:
@@ -10,7 +10,7 @@ db:
 
 data:
     image: dylanlindgren/docker-laravel-data
-    container_name: ec-data
+    container_name: gedc-data
     volumes:
         - ../lumen:/data
     env_file:
@@ -19,7 +19,7 @@ data:
 
 php:
     image: ppoffice/docker-laravel-phpfpm
-    container_name: ec-php
+    container_name: gedc-php
     volumes_from:
         - data
     links:
@@ -30,7 +30,7 @@ php:
 
 web:
     image: dylanlindgren/docker-laravel-nginx
-    container_name: ec-web
+    container_name: gedc-web
     volumes_from:
         - data
     links:
@@ -43,7 +43,7 @@ web:
 
 phpmyadmin:
     image: phpmyadmin/phpmyadmin
-    container_name: ec-phpmyadmin
+    container_name: gedc-phpmyadmin
     links:
         - db:db
     restart: always
@@ -54,13 +54,19 @@ phpmyadmin:
     ports:
         - 8081:80
 
+cache:
+    image: redis
+    container_name: gedc-cache
+    privileged: true
+
 node:
     build: ./node
-    container_name: ec-node
+    container_name: gedc-node
     volumes:
         - ../node:/data
     links:
         - db:db
+        - cache:cache
     ports:
         - 10000:10000
     env_file:
@@ -68,7 +74,7 @@ node:
 
 composer:
     image: ppoffice/docker-laravel-composer
-    container_name: ec-composer
+    container_name: gedc-composer
     volumes_from:
         - data
     env_file:
@@ -76,7 +82,7 @@ composer:
 
 artisan:
     image: ppoffice/docker-laravel-artisan
-    container_name: ec-artisan
+    container_name: gedc-artisan
     volumes_from:
         - data
     links:
