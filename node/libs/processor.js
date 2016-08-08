@@ -1,5 +1,4 @@
 const Redis = require('redis');
-const Pusher = require('pusher');
 const sequelize = require('./sequelize');
 const SensorData = require('../models/sensor_data');
 const HourlyData = require('../models/hourly_data');
@@ -8,43 +7,16 @@ const MonthlyData = require('../models/monthly_data');
 const Notification = require('../models/notification');
 
 const CALCULATE_ON = 256;
-const pattern = /^([p|a|n|t]):(.+)/;
+const pattern = /^([p|a|t]):(.+)/;
 const INVALID_REQUEST = 'error: invalid request';
 const INVALID_DATA_FORMAT = 'error: invalid data format';
 
 const { CACHE_PORT_6379_TCP_ADDR, CACHE_PORT_6379_TCP_PORT } = process.env;
 const redis = Redis.createClient(CACHE_PORT_6379_TCP_PORT, CACHE_PORT_6379_TCP_ADDR);
 
-const pusher = new Pusher({
-    appId: '213316',
-    key: '24737bc4b88e96c1898c',
-    secret: 'd6ab2f39949df87df8fa',
-    encrypted: true
-});
-
 redis.on('error', function(error) {
     console.log("Redis error: " + error);
 });
-
-const MESSAGES = {
-    0: {
-        event: 'new_alert',
-        channel: 'alert_channel',
-        subcategories: {
-            0: 'fall'
-        }
-    }
-};
-const getMessage = (category, subcategory) => {
-    if (typeof MESSAGES[category] === 'undefined' || typeof MESSAGES[category]['subcategories'][subcategory] === 'undefined') {
-        return null;
-    }
-    return {
-        event: MESSAGES[category]['event'],
-        channel: MESSAGES[category]['channel'],
-        type: MESSAGES[category]['subcategories'][subcategory]
-    };
-}
 
 const unixTimeToDate = function(time) {
     switch (new String(time).length) {
@@ -111,34 +83,7 @@ const handlers = {
     },
     't': function handleTime(str, timeReceived) {
         return Promise.resolve(str + ',' + timeReceived + ',' + new Date().getTime());
-    },
-    'n': function handleNotification (str) {
-        const parsed = JSON.parse(str);
-        if (parsed !== null && parsed.length === 4) {
-            const sensorId = parsed[0];
-            const category = parsed[2];
-            const subcategory = parsed[3];
-            const timestamp = unixTimeToDate(parsed[1]);
-            if (timestamp !== null) {
-                const message = getMessage(category, subcategory);
-                if (message !== null) {
-                    message['sensorId'] = sensorId;
-                    message['timestamp'] = timestamp; // TODO: format time
-
-                    return new Promise((resolve, reject) => {
-                        pusher.trigger(message['channel'], message['event'], message, error => error ? reject(error) : resolve());
-                    }).then(() => {
-                        return Notification.create({
-                            sensorId, timestamp, category, subcategory,
-                            createdAt: new Date(),
-                            updatedAt: new Date()
-                        });
-                    }).then(() => str);
-                }
-            }
-        }
-        return Promise.reject(new Error(INVALID_DATA_FORMAT));
-    },
+    }
 }
 
 class Processor {

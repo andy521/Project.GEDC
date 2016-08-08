@@ -12,12 +12,5 @@ class AppServiceProvider extends ServiceProvider {
      * @return void
      */
     public function register() {
-        $this->app->singleton('command.socket.start', function() {
-            return new SocketCommand;
-        });
-
-        $this->commands(
-            'command.socket.start'
-        );
     }
 }
