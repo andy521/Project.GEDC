@@ -6,7 +6,7 @@ const DailyData = require('../models/daily_data');
 const MonthlyData = require('../models/monthly_data');
 
 const CALCULATE_ON = 128;
-const pattern = /^([p|a|t]):(.+)/;
+const pattern = /^([p|m|t]):(.+)/;
 const INVALID_REQUEST = 'invalid request';
 const INVALID_DATA_FORMAT = 'invalid data format';
 
@@ -53,26 +53,29 @@ const handlers = {
         }
         return Promise.reject(new Error(INVALID_DATA_FORMAT));
     },
-    'a': function handleAcceleration(str) {
+    'm': function handleMotion(str) {
         const parsed = JSON.parse(str);
-        if (parsed !== null && parsed.length == 6) {
+        if (parsed !== null && parsed.length == 8) {
             const sensorId = parsed[0];
             const timestamp = unixTimeToDate(parsed[1]);
-            const value = parseFloat(parsed[2]);
-            const cosx = parseFloat(parsed[3]);
-            const cosy = parseFloat(parsed[4]);
-            const cosz = parseFloat(parsed[5]);
+            const accx = parseFloat(parsed[2]);
+            const accy = parseFloat(parsed[3]);
+            const accz = parseFloat(parsed[4]);
+            // gyroscope
+            const gyrx = parseFloat(parsed[5]);
+            const gyry = parseFloat(parsed[6]);
+            const gyrz = parseFloat(parsed[7]);
             if (timestamp !== null) {
                 return new Promise((resolve, reject) => {
-                    redis.zadd([`acceleration:${sensorId}`, timestamp.getTime(), `${value},${cosx},${cosy},${cosz}`], (error, response) => error === null ? resolve() : reject(error));
+                    redis.zadd([`motion:${sensorId}`, timestamp.getTime(), `${accx},${accy},${accz},${gyrx},${gyry},${gyrz}`], (error, response) => error === null ? resolve() : reject(error));
                 }).then(() => {
                     return new Promise((resolve, reject) => {
-                        redis.zcard(`acceleration:${sensorId}`, (error, response) => error === null ? resolve(response) : reject(error));
+                        redis.zcard(`motion:${sensorId}`, (error, response) => error === null ? resolve(response) : reject(error));
                     });
                 }).then(response => {
                     // Tell other programs to start calculate when data size is times of ${CALCULATE_ON}
                     if (response % CALCULATE_ON === 0) {
-                        redis.publish(`acceleration:${sensorId}`, 'START');
+                        redis.publish(`motion:${sensorId}`, 'START');
                     }
                     return str;
                 });
