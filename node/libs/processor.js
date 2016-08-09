@@ -5,7 +5,7 @@ const HourlyData = require('../models/hourly_data');
 const DailyData = require('../models/daily_data');
 const MonthlyData = require('../models/monthly_data');
 
-const CALCULATE_ON = 256;
+const CALCULATE_ON = 128;
 const pattern = /^([p|a|t]):(.+)/;
 const INVALID_REQUEST = 'invalid request';
 const INVALID_DATA_FORMAT = 'invalid data format';
@@ -14,7 +14,7 @@ const { CACHE_PORT_6379_TCP_ADDR, CACHE_PORT_6379_TCP_PORT } = process.env;
 const redis = Redis.createClient(CACHE_PORT_6379_TCP_PORT, CACHE_PORT_6379_TCP_ADDR);
 
 redis.on('error', function(error) {
-    console.log("Redis error: " + error);
+    console.error(error);
 });
 
 const unixTimeToDate = function(time) {

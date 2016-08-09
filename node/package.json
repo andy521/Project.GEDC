@@ -1,7 +1,7 @@
 {
-  "name": "project-ec-socket",
+  "name": "project-gedc-node",
   "version": "0.0.1",
-  "description": "Socket Server for Project-EC",
+  "description": "Socket Server for Project.GEDC",
   "main": "index.js",
   "scripts": {
     "start": "forever --uid server --killSignal=SIGTERM --watchDirectory=$(pwd) index.js",
