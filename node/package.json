@@ -4,12 +4,13 @@
   "description": "Socket Server for Project-EC",
   "main": "index.js",
   "scripts": {
-    "start": "forever --uid server --killSignal=SIGTERM -w --watchDirectory=$(pwd) index.js",
+    "start": "forever --uid server --killSignal=SIGTERM --watchDirectory=$(pwd) index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "PPOffice",
   "license": "MIT",
   "dependencies": {
+    "dateformat": "^1.0.12",
     "mysql": "^2.11.1",
     "redis": "^2.6.2",
     "sequelize": "^3.23.6"
