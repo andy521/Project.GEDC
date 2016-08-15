@@ -10,13 +10,9 @@ const server = net.createServer((socket) => {
         if (request) {
             const timeReceived = dateFormat(new Date(), 'yyyy-mm-dd HH:MM:ss');
             console.log(`[${ timeReceived }] ${ socket.remoteAddress } client => server ${ request }`);
-            processor.handle(request).then(response => response, error => {
-                let message = error.message;
-                if (message) {
-                    message = message[0].toLowerCase() + message.slice(1);
-                }
-                return Promise.resolve('error: ' + message);
-            }).then(response => {
+            processor.handle(request)
+            .then(response => response, error => Promise.resolve('error: ' + error.message))
+            .then(response => {
                 socket.write(response + '\r\n');
                 const timeSent = dateFormat(new Date(), 'yyyy-mm-dd HH:MM:ss');
                 console.log(`[${ timeSent }] ${ socket.remoteAddress } server => client ${ response }`);

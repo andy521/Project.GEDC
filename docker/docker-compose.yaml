@@ -58,6 +58,8 @@ cache:
     image: redis
     container_name: gedc-cache
     privileged: true
+    ports:
+        - 6379:6379
 
 node:
     build: ./node

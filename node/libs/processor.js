@@ -5,8 +5,8 @@ const HourlyData = require('../models/hourly_data');
 const DailyData = require('../models/daily_data');
 const MonthlyData = require('../models/monthly_data');
 
-const CALCULATE_ON = 128;
-const pattern = /^([p|m|t]):(.+)/;
+const MOTION_DATA_LENGTH = 30;
+const pattern = /^([p|m]):(.+)/;
 const INVALID_REQUEST = 'invalid request';
 const INVALID_DATA_FORMAT = 'invalid data format';
 
@@ -17,82 +17,61 @@ redis.on('error', function(error) {
     console.error(error);
 });
 
-const unixTimeToDate = function(time) {
-    switch (new String(time).length) {
-        case 10: return new Date(time * 1000);
-        case 13: return new Date(time);
-        default: return null;
-    }
-}
-
 const handlers = {
     'p': function handlePhysical(str) {
         const parsed = JSON.parse(str);
-        if (parsed !== null && parsed.length == 5) {
-            const timestamp = unixTimeToDate(parsed[1]);
-            if (timestamp !== null) {
-                const data = {
-                    sensorId: parsed[0],
-                    timestamp,
-                    ibi: parsed[2],
-                    bpm: parsed[3],
-                    tem: parsed[4],
-                    createdAt: new Date(),
-                    updatedAt: new Date()
-                };
-                return sequelize.transaction(transaction => {
-                    const promises = [
-                        SensorData.create(data, { transaction }),
-                        HourlyData.saveOrUpdateOnSensorData(data, transaction),
-                        DailyData.saveOrUpdateOnSensorData(data, transaction),
-                        MonthlyData.saveOrUpdateOnSensorData(data, transaction),
-                    ];
-                    return Promise.all(promises);
-                }).then(() => str);
-            }
+        if (parsed !== null && parsed.length == 4) {
+            const data = {
+                sensorId: parsed[0],
+                timestamp: new Date(),
+                ibi: parsed[1],
+                bpm: parsed[2],
+                tem: parsed[3],
+                createdAt: new Date(),
+                updatedAt: new Date()
+            };
+            return sequelize.transaction(transaction => {
+                const promises = [
+                    SensorData.create(data, { transaction }),
+                    HourlyData.saveOrUpdateOnSensorData(data, transaction),
+                    DailyData.saveOrUpdateOnSensorData(data, transaction),
+                    MonthlyData.saveOrUpdateOnSensorData(data, transaction),
+                ];
+                return Promise.all(promises);
+            }).then(() => str);
         }
         return Promise.reject(new Error(INVALID_DATA_FORMAT));
     },
     'm': function handleMotion(str) {
         const parsed = JSON.parse(str);
-        if (parsed !== null && parsed.length == 8) {
+        if (parsed !== null && parsed.length == 7) {
             const sensorId = parsed[0];
-            const timestamp = unixTimeToDate(parsed[1]);
-            const accx = parseFloat(parsed[2]);
-            const accy = parseFloat(parsed[3]);
-            const accz = parseFloat(parsed[4]);
+            const accx = parseFloat(parsed[1]);
+            const accy = parseFloat(parsed[2]);
+            const accz = parseFloat(parsed[3]);
             // gyroscope
-            const gyrx = parseFloat(parsed[5]);
-            const gyry = parseFloat(parsed[6]);
-            const gyrz = parseFloat(parsed[7]);
-            if (timestamp !== null) {
+            const gyrx = parseFloat(parsed[4]);
+            const gyry = parseFloat(parsed[5]);
+            const gyrz = parseFloat(parsed[6]);
+            return new Promise((resolve, reject) => {
+                redis.lpush(`motion:${sensorId}`, `${accx},${accy},${accz},${gyrx},${gyry},${gyrz}`, (error, response) => error === null ? resolve() : reject(error));
+            }).then(() => {
                 return new Promise((resolve, reject) => {
-                    redis.zadd([`motion:${sensorId}`, timestamp.getTime(), `${accx},${accy},${accz},${gyrx},${gyry},${gyrz}`], (error, response) => error === null ? resolve() : reject(error));
-                }).then(() => {
-                    return new Promise((resolve, reject) => {
-                        redis.zcard(`motion:${sensorId}`, (error, response) => error === null ? resolve(response) : reject(error));
-                    });
-                }).then(response => {
-                    // Tell other programs to start calculate when data size is times of ${CALCULATE_ON}
-                    if (response % CALCULATE_ON === 0) {
-                        redis.publish(`motion:${sensorId}`, 'START');
-                    }
-                    return str;
+                    redis.llen(`motion:${sensorId}`, (error, response) => error === null ? resolve(response) : reject(error));
                 });
-            }
+            }).then(response => {
+                // Tell other programs to start calculate when data size is times of ${MOTION_DATA_LENGTH}
+                if (response > 0 && response % MOTION_DATA_LENGTH === 0) {
+                    redis.publish('motion', sensorId);
+                }
+                return str;
+            });
         }
         return Promise.reject(new Error(INVALID_DATA_FORMAT));
-    },
-    't': function handleTime(str, timeReceived) {
-        return Promise.resolve(str + ',' + timeReceived + ',' + new Date().getTime());
     }
 }
 
 class Processor {
-    constructor() {
-        this.timestamp = new Date().getTime();
-    }
-
     handle(str) {
         const ret = pattern.exec(str);
         if (ret !== null && ret.length === 3) {
@@ -100,7 +79,7 @@ class Processor {
             const content = ret[2];
             if (typeof handlers[type] !== 'undefined') {
                 try {
-                    return handlers[type](content, this.timestamp);
+                    return handlers[type](content);
                 } catch (error) {
                     return Promise.reject(error);
                 }
