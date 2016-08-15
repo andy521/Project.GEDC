@@ -60,8 +60,8 @@ cache:
     image: redis
     container_name: gedc-cache
     privileged: true
-    ports:
-        - 6379:6379
+    # ports:
+    #     - 6379:6379
 
 node:
     build: ./node
@@ -73,6 +73,16 @@ node:
         - cache:cache
     ports:
         - 10000:10000
+    env_file:
+        - common.env
+
+python:
+    build: ./python
+    container_name: gedc-python
+    volumes:
+        - ../python:/data
+    links:
+        - cache:cache
     env_file:
         - common.env
 
